@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.regex.Pattern;
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PrescriptionService prescriptionService;
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -46,17 +49,24 @@ public class UserService {
         return mongoTemplate.find(query, User.class);
     }
 
+    public void deletePrescriptionOfUserById(String email, ObjectId prescriptionId) {
+        List<Prescription> prescriptions = prescriptionService.getAllPrescriptionsOfUser(email);
+
+        for (Prescription prescription : prescriptions) {
+            if (prescription.getId().equals(prescriptionId)) {
+                prescriptions.remove(prescription);
+                break;
+            }
+        }
+        mongoTemplate.update(User.class)
+                .matching(Criteria.where("email").is(email))
+                .apply(new Update().set("prescriptions", prescriptions))
+                .first();
+    }
+
     public long getCount() {
         return userRepository.count();
     }
 
-//    public void getUserWithPrescription(Prescription prescription) {
-//        Query query = new Query();
-//        Criteria criteria = new Criteria().
-//
-//
-//        Criteria criteria = new Criteria(Criteria.where("prescriptions").in(prescription.get_id()));
-//
-//        mongoTemplate.find()
-//    }
+
 }

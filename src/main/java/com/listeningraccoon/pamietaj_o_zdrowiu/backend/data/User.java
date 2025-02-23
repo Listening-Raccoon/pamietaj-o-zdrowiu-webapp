@@ -13,11 +13,16 @@ import java.util.List;
 @NoArgsConstructor
 public class User {
     @Id
-    private ObjectId _id;
+    @Getter
+    private ObjectId id;
 
+    @Getter
     private String firstName;
+    @Getter
     private String lastName;
+    @Getter
     private String email;
+    @Getter
     @DocumentReference
     private List<Prescription> prescriptions;
 
@@ -31,7 +36,7 @@ public class User {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\nID: " + _id);
+        sb.append("\nID: " + id);
         sb.append("\nFirst Name: " + firstName);
         sb.append("\nLast Name: " + lastName);
         sb.append("\nEmail: " + email);
@@ -45,45 +50,5 @@ public class User {
             sb.append("\n");
         }
         return sb.toString();
-    }
-
-    public void set_id(ObjectId id) {
-        this._id = id;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setPrescriptions(List<Prescription> prescriptions) {
-        this.prescriptions = prescriptions;
-    }
-
-    public ObjectId get_id() {
-        return _id;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public List<Prescription> getPrescriptions() {
-        return prescriptions;
     }
 }

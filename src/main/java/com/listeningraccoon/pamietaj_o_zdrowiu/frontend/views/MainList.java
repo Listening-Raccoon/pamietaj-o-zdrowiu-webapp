@@ -35,7 +35,7 @@ public class MainList extends VerticalLayout {
     public MainList(UserService userService, PrescriptionService prescriptionService) {
         this.userService = userService;
         this.prescriptionService = prescriptionService;
-        this.detailsList = new DetailsList(prescriptionService);
+        this.detailsList = new DetailsList(prescriptionService, userService);
         addClassName("main-view");
         setSizeFull();
 
@@ -97,6 +97,10 @@ public class MainList extends VerticalLayout {
         verticalLayout.setFlexGrow(1, detailsList);
         verticalLayout.setSizeFull();
 
+        detailsList.addListener(DetailsList.DeleteEvent.class, event -> {
+            updateList();
+        });
+
         HorizontalLayout horizontalLayout = new HorizontalLayout(verticalLayout, form);
         horizontalLayout.setFlexGrow(2, verticalLayout);
         horizontalLayout.setFlexGrow(1, form);
@@ -135,7 +139,6 @@ public class MainList extends VerticalLayout {
     }
 
     private void closeDetails() {
-        Notification.show("Close");
         detailsList.setVisible(false);
         detailsList.setPrescriptions(new User("", "", "", new ArrayList<>()));
         detailsList.clearFilter();

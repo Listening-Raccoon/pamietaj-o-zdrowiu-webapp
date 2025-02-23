@@ -3,6 +3,7 @@ package com.listeningraccoon.pamietaj_o_zdrowiu.backend.services;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.Prescription;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.User;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.repositories.PrescriptionRepository;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -35,6 +36,10 @@ public class PrescriptionService {
         return prescription;
     }
 
+    public Optional<Prescription> getPrescriptionById(ObjectId id) {
+        return prescriptionRepository.findById(id);
+    }
+
     public List<Prescription> getAllPrescriptionsOfUser(String email) {
         Optional<User> user = userService.getUserByEmail(email);
 
@@ -52,6 +57,10 @@ public class PrescriptionService {
             }
         }
         return filteredPrescriptions;
+    }
+
+    public void deletePrescription(ObjectId prescriptionId) {
+        prescriptionRepository.deleteById(prescriptionId);
     }
 
     public long getCount() {
