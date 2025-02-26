@@ -2,39 +2,48 @@ package com.listeningraccoon.pamietaj_o_zdrowiu.frontend.views;
 
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.Prescription;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.User;
+import com.listeningraccoon.pamietaj_o_zdrowiu.backend.services.Sender;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.services.PrescriptionService;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.services.UserService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.theme.lumo.Lumo;
+import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @PageTitle("Home | POZ")
-@Route(value = "")
-//@CssImport(value = "./themes/styles.css")
 public class MainList extends VerticalLayout {
     private final Grid<User> grid = new Grid<>(User.class);
     private final TextField filterText = new TextField();
     private final Button logoutButton = new Button("Logout");
+    private final Button filterButton = new Button("Filter");
+    private final Button switchThemeButton = new Button("Theme");
     private UserForm form;
     private final DetailsList detailsList;
 
     private final UserService userService;
     private final PrescriptionService prescriptionService;
+    private final Sender sender;
 
-    public MainList(UserService userService, PrescriptionService prescriptionService) {
+    private boolean displayOnlyAssigned = false;
+
+    public MainList(UserService userService, PrescriptionService prescriptionService, Sender sender) {
         this.userService = userService;
         this.prescriptionService = prescriptionService;
+        this.sender = sender;
         this.detailsList = new DetailsList(prescriptionService, userService);
         addClassName("main-view");
         setSizeFull();
@@ -54,20 +63,43 @@ public class MainList extends VerticalLayout {
         spacer.setWidth("19%");
         HorizontalLayout horizontalLayout = new HorizontalLayout();
         horizontalLayout.setWidth("100%");
-        horizontalLayout.add(filterText, spacer, logoutButton);
+        horizontalLayout.add(filterText, filterButton, spacer, switchThemeButton, logoutButton);
         filterText.setPlaceholder("Find user...");
         filterText.setClearButtonVisible(true);
         filterText.setValueChangeMode(ValueChangeMode.LAZY);
         filterText.setWidth("100%");
 
         filterText.addValueChangeListener(event -> updateList());
+        filterButton.addClickListener(event -> setAssignedFilter());
         logoutButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         logoutButton.addClickListener(event -> logout());
+        switchThemeButton.addClickListener(event -> switchTheme());
         return horizontalLayout;
     }
 
+    private void switchTheme() {
+        ThemeList themeList = UI.getCurrent().getElement().getThemeList();
+
+        if (themeList.contains(Lumo.DARK)) {
+            themeList.remove(Lumo.DARK);
+        } else {
+            themeList.add(Lumo.DARK);
+        }
+    }
+
+    private void setAssignedFilter() {
+        displayOnlyAssigned = !displayOnlyAssigned;
+        if (displayOnlyAssigned) {
+            filterButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        }
+        else {
+            filterButton.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        }
+        updateList();
+    }
+
     private void closeForm() {
-        form.selectUser(new User("", "", "", new ArrayList<>()));
+        form.selectUser(new User("", "", "", new ArrayList<>(), new ArrayList<>()));
         form.setVisible(false);
         grid.deselectAll();
         detailsList.deselectAll();
@@ -87,7 +119,27 @@ public class MainList extends VerticalLayout {
     }
 
     private void updateList() {
-        grid.setItems(userService.getUsersByFilter(filterText.getValue()));
+        List<User> users = userService.getUsersByFilter(filterText.getValue());
+        List<User> usersToDisplay = new ArrayList<>();
+        if(displayOnlyAssigned) {
+            usersToDisplay = filterUsers(users);
+        }
+        else {
+            usersToDisplay = users;
+        }
+        grid.setItems(usersToDisplay);
+    }
+
+    private List<User> filterUsers(List<User> users) {
+        List<User> usersToDisplay = new ArrayList<>();
+        users.forEach(user -> {
+            user.getAssignedUsers().forEach(assignedUser -> {
+                if (assignedUser.getId().equals((ObjectId) VaadinSession.getCurrent().getSession().getAttribute("currentUser"))) {
+                    usersToDisplay.add(user);
+                }
+            });
+        });
+        return usersToDisplay;
     }
 
     private Component getContent() {
@@ -111,7 +163,7 @@ public class MainList extends VerticalLayout {
     }
 
     private void configureForm() {
-        form = new UserForm();
+        form = new UserForm(userService);
         form.setWidth("30em");
 
         form.addListener(UserForm.SaveEvent.class, event -> {
@@ -124,6 +176,10 @@ public class MainList extends VerticalLayout {
 
         form.addListener(UserForm.CancelEvent.class, event -> {
             closeForm();
+        });
+
+        form.addListener(UserForm.AssignEvent.class, event -> {
+            updateList();
         });
     }
 
@@ -140,7 +196,7 @@ public class MainList extends VerticalLayout {
 
     private void closeDetails() {
         detailsList.setVisible(false);
-        detailsList.setPrescriptions(new User("", "", "", new ArrayList<>()));
+        detailsList.setPrescriptions(new User("", "", "", new ArrayList<>(), new ArrayList<>()));
         detailsList.clearFilter();
         removeClassName("details-open");
     }
@@ -152,11 +208,15 @@ public class MainList extends VerticalLayout {
                                                 prescription.getEndDate(),
                                                 prescription.getTime(),
                                                 user.getEmail());
+
+        //sender.sendEmail(user, prescription);
         updateList();
     }
 
     private void logout() {
-        //TODO: create a logout event
+        UI.getCurrent().getPage().setLocation("login");
+        VaadinSession.getCurrent().getSession().invalidate();
+        VaadinSession.getCurrent().close();
     }
 
     private void configureGrid() {

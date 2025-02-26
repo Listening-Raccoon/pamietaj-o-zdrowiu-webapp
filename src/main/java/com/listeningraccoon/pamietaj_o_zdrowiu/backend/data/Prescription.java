@@ -33,4 +33,12 @@ public class Prescription {
         this.endDate = endDate;
         this.time = time;
     }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Name: " + name);
+        sb.append("\nGroup: " + group);
+        sb.append(String.format("\nStart date: %s   End date: %s   Time: %s", startDate, endDate, time));
+        return sb.toString();
+    }
 }

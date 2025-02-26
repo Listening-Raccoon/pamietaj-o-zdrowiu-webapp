@@ -2,6 +2,7 @@ package com.listeningraccoon.pamietaj_o_zdrowiu.backend.services;
 
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.Prescription;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.User;
+import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.WebUser;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.repositories.UserRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,13 @@ public class UserService {
         mongoTemplate.update(User.class)
                 .matching(Criteria.where("email").is(email))
                 .apply(new Update().set("prescriptions", prescriptions))
+                .first();
+    }
+
+    public void assignWebUser(ObjectId webUserId, ObjectId userId) {
+        mongoTemplate.update(User.class)
+                .matching(Criteria.where("id").is(userId))
+                .apply(new Update().push("assignedUsers").value(webUserId))
                 .first();
     }
 

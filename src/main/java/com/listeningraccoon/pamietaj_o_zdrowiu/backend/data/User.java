@@ -25,12 +25,16 @@ public class User {
     @Getter
     @DocumentReference
     private List<Prescription> prescriptions;
+    @Getter
+    @DocumentReference
+    private List<WebUser> assignedUsers;
 
-    public User(String firstName, String lastName, String email, List<Prescription> prescriptions) {
+    public User(String firstName, String lastName, String email, List<Prescription> prescriptions, List<WebUser> assignedUsers) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.prescriptions = prescriptions;
+        this.assignedUsers = assignedUsers;
     }
 
     @Override

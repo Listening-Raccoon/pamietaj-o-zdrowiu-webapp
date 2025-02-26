@@ -2,6 +2,7 @@ package com.listeningraccoon.pamietaj_o_zdrowiu.frontend.views;
 
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.Prescription;
 import com.listeningraccoon.pamietaj_o_zdrowiu.backend.data.User;
+import com.listeningraccoon.pamietaj_o_zdrowiu.backend.services.UserService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -11,19 +12,23 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 import lombok.Getter;
+import org.bson.types.ObjectId;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class UserForm extends FormLayout {
+    private final UserService userService;
     Binder<User> userBinder = new Binder<>(User.class);
     Binder<Prescription> prescriptionBinder = new Binder<>(Prescription.class);
     Prescription prescription;
@@ -43,12 +48,14 @@ public class UserForm extends FormLayout {
     Button detailsButton = new Button("Details");
     Button addPrescription = new Button("Add new");
     Button cancelButton = new Button("Cancel");
+    Button assignButton = new Button("Assign");
 
     VerticalLayout addNewLayout = new VerticalLayout();
 
     private User user;
 
-    public UserForm() {
+    public UserForm(UserService userService) {
+        this.userService = userService;
         addClassName("user-form");
 
         firstName.setReadOnly(true);
@@ -56,6 +63,7 @@ public class UserForm extends FormLayout {
         email.setReadOnly(true);
 
         addNewLayout = (VerticalLayout) createAddNewLayout();
+
 
         add(firstName, lastName, email, addNewLayout, createButtonsLayout());
     }
@@ -65,6 +73,12 @@ public class UserForm extends FormLayout {
         this.firstName.setValue(user.getFirstName());
         this.lastName.setValue(user.getLastName());
         this.email.setValue(user.getEmail());
+        assignButton.setVisible(true);
+        user.getAssignedUsers().forEach(assignedUser -> {
+            if (assignedUser.getId().equals((ObjectId) VaadinSession.getCurrent().getSession().getAttribute("currentUser"))) {
+                assignButton.setVisible(false);
+            }
+        });
         clearAddNewLayout();
     }
 
@@ -78,6 +92,12 @@ public class UserForm extends FormLayout {
 
     private Component createAddNewLayout() {
         VerticalLayout verticalLayout = new VerticalLayout(name, group, startDate, endDate, time);
+        verticalLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        name.setWidth("100%");
+        group.setWidth("100%");
+        startDate.setWidth("100%");
+        endDate.setWidth("100%");
+        time.setWidth("100%");
         verticalLayout.setVisible(false);
         endDate.setEnabled(false);
         startDate.setMin(LocalDate.now());
@@ -99,6 +119,10 @@ public class UserForm extends FormLayout {
         cancelButton.addClickListener(event -> fireEvent(new CancelEvent(this)));
         detailsButton.addClickListener(event -> fireEvent(new DetailsEvent(this, user)));
         addPrescription.addClickListener(event -> switchAddNewForm());
+        assignButton.addClickListener(event -> {
+            assignUser((ObjectId) VaadinSession.getCurrent().getSession().getAttribute("currentUser"), user.getId());
+            fireEvent(new AssignEvent(this));
+        });
 
         saveButton.addClickShortcut(Key.ENTER);
         cancelButton.addClickShortcut(Key.ESCAPE);
@@ -106,10 +130,14 @@ public class UserForm extends FormLayout {
         saveButton.setVisible(false);
 
         HorizontalLayout horizontalLayout = new HorizontalLayout();
-        horizontalLayout.add(addPrescription, detailsButton, saveButton, cancelButton);
+        horizontalLayout.add(addPrescription, detailsButton, saveButton, assignButton, cancelButton);
         horizontalLayout.setSizeFull();
 
         return horizontalLayout;
+    }
+
+    private void assignUser(ObjectId currentUser, ObjectId userId) {
+        userService.assignWebUser(currentUser, userId);
     }
 
     private void switchAddNewForm() {
@@ -187,6 +215,12 @@ public class UserForm extends FormLayout {
 
     public static class CancelEvent extends UserFormEvent {
         public CancelEvent(UserForm source) {
+            super(source, null, null);
+        }
+    }
+
+    public static class AssignEvent extends UserFormEvent {
+        public AssignEvent(UserForm source) {
             super(source, null, null);
         }
     }

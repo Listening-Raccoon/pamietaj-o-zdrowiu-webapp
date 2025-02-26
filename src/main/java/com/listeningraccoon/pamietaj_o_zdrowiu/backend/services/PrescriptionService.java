@@ -25,6 +25,7 @@ public class PrescriptionService {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+
     public Prescription createPrescription(String name, String group, String startDate, String endDate, String time, String email) {
         Prescription prescription = prescriptionRepository.insert(new Prescription(name, group, startDate, endDate, time));
 

@@ -1,6 +1,0 @@
-@media all and (max-width: 1100px) {
-    .main-view.form-open .toolbar,
-    .main-view.form-open .user-grid {
-        display: none;
-    }
-}
